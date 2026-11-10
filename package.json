@@ -1,0 +1,18 @@
+{
+  "name": "todo-cat",
+  "productName": "Todo Cat",
+  "version": "0.2.0",
+  "description": "Todo Cat — 桌面悬浮待办、白纸执行与小猫陪伴 (macOS)",
+  "main": "src/main/main.js",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test test/",
+    "e2e": "TODOCAT_E2E=1 electron .",
+    "package": "electron-packager . \"Todo Cat\" --platform=darwin --arch=arm64 --out=dist --overwrite --app-bundle-id=com.todocat.app --icon=build/icon.icns --ignore=\"^/scripts\" --ignore=\"^/dist\" --ignore=\"^/test\" --ignore=\"^/e2e-shots\" && codesign --force --deep -s - \"dist/Todo Cat-darwin-arm64/Todo Cat.app\""
+  },
+  "devDependencies": {
+    "@electron/packager": "^20.3.0",
+    "electron": "^45.2.3"
+  }
+}

@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'">
+<title>Todo Cat</title>
+<link rel="stylesheet" href="panel.css">
+</head>
+<body>
+  <header id="tabs">
+    <nav>
+      <button data-tab="focus">白纸执行</button>
+      <button data-tab="todo">to-do</button>
+      <button data-tab="pending">pending</button>
+      <button data-tab="completed">completed</button>
+      <button data-tab="cancelled">cancelled</button>
+      <button data-tab="more">更多</button>
+    </nav>
+    <button id="collapse" title="收起到悬浮球">–</button>
+  </header>
+  <div id="banner"></div>
+  <main>
+    <section id="p-focus" hidden>
+      <div id="focus-body"></div>
+      <div id="thought-box" hidden>
+        <textarea id="thought-text" rows="3" maxlength="2000" placeholder="先把想法记下来，等会儿再处理。Enter 提交，Esc 取消"></textarea>
+        <div class="row-btns">
+          <span class="hint">录入期间计时已暂停</span>
+          <button id="thought-cancel" class="btn ghost">取消</button>
+          <button id="thought-submit" class="btn primary">提交</button>
+        </div>
+      </div>
+      <div id="focus-thoughts"></div>
+    </section>
+    <section id="p-todo" hidden>
+      <div id="today-strip"></div>
+      <div id="onboard"></div>
+      <div id="cats"></div>
+      <form id="add" autocomplete="off">
+        <div id="add-ctx" hidden></div>
+        <input id="add-title" maxlength="200" placeholder="记一件要做的事，回车填时长">
+        <div id="add-hint" class="hint"></div>
+        <div id="add-dur" hidden>
+          <div class="chips">
+            <button type="button" data-min="15">15 分</button>
+            <button type="button" data-min="25">25 分</button>
+            <button type="button" data-min="45">45 分</button>
+            <button type="button" data-min="60">60 分</button>
+          </div>
+          <div class="hm">
+            <input id="add-h" inputmode="numeric" maxlength="2" placeholder="0"><span>小时</span>
+            <input id="add-m" inputmode="numeric" maxlength="4" placeholder="0"><span>分钟</span>
+            <button type="submit" class="btn primary">添加</button>
+          </div>
+        </div>
+        <div id="add-err" class="err"></div>
+      </form>
+      <div id="todo-list" class="list"></div>
+    </section>
+    <section id="p-pending" class="list" hidden></section>
+    <section id="p-completed" class="list" hidden></section>
+    <section id="p-cancelled" class="list" hidden></section>
+    <section id="p-more" hidden></section>
+  </main>
+  <footer id="execbar" hidden></footer>
+  <div id="toast" hidden></div>
+  <script src="parse.js"></script>
+  <script src="cat.js"></script>
+  <script src="panel.js"></script>
+</body>
+</html>

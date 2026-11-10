@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'">
+<style>
+  html, body { margin: 0; height: 100%; background: transparent; overflow: hidden; user-select: none; -webkit-user-select: none;
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif; }
+  body { display: flex; flex-direction: column; justify-content: flex-end; align-items: center; }
+  #cat { height: 58px; display: none; align-items: flex-end; justify-content: center; margin-bottom: -10px; pointer-events: none; position: relative; z-index: 2; }
+  #cat.on { display: flex; }
+  #cat small { font-size: 10px; color: #fff; background: rgba(60,45,30,.72); padding: 2px 6px; border-radius: 8px; margin-bottom: 14px; white-space: nowrap; }
+  #wrap { width: 72px; height: 72px; display: grid; place-items: center; flex: none; }
+  #ball { width: 54px; height: 54px; border-radius: 50%; position: relative; cursor: grab; display: grid; place-items: center;
+    background: radial-gradient(circle at 32% 28%, rgba(255,255,255,.95), rgba(255,214,150,.82) 46%, rgba(240,150,70,.78));
+    box-shadow: 0 4px 14px rgba(0,0,0,.28), inset 0 0 0 1px rgba(255,255,255,.55); opacity: .88; transition: opacity .15s, transform .15s; }
+  #ball:hover { opacity: 1; transform: scale(1.05); }
+  #ball.dragging { cursor: grabbing; }
+  #ball.attn { animation: attn 1.6s ease-in-out infinite; opacity: 1; }
+  @keyframes attn { 0%, 100% { box-shadow: 0 4px 14px rgba(0,0,0,.28), 0 0 0 0 rgba(47,158,110,.55), inset 0 0 0 1px rgba(255,255,255,.55); } 50% { box-shadow: 0 4px 14px rgba(0,0,0,.28), 0 0 0 9px rgba(47,158,110,0), inset 0 0 0 1px rgba(255,255,255,.55); } }
+  #ring { position: absolute; inset: -4px; transform: rotate(-90deg); pointer-events: none; }
+  #ring[hidden] { display: none; }
+  #ring circle { fill: none; stroke-width: 3.5; }
+  #ring .bg { stroke: rgba(255,255,255,.45); }
+  #ring .fg { stroke: #2f9e6e; stroke-linecap: round; transition: stroke-dashoffset .4s linear; }
+  #ball.paused #ring .fg { stroke: #9a9a9a; }
+  #num { font-size: 20px; font-weight: 700; color: #5b3a16; line-height: 1; text-align: center; pointer-events: none; }
+  #num small { display: block; font-size: 9px; font-weight: 600; opacity: .75; margin-top: 2px; }
+</style>
+</head>
+<body>
+  <div id="cat"></div>
+  <div id="wrap">
+    <div id="ball" title="Todo Cat">
+      <svg id="ring" viewBox="0 0 62 62" hidden><circle class="bg" cx="31" cy="31" r="28"/><circle class="fg" cx="31" cy="31" r="28"/></svg>
+      <div id="num">0</div>
+    </div>
+  </div>
+<script src="cat.js"></script>
+<script>
+  const ball = document.getElementById('ball');
+  const num = document.getElementById('num');
+  const ring = document.getElementById('ring');
+  const fg = ring.querySelector('.fg');
+  const cat = document.getElementById('cat');
+  const CIRC = 2 * Math.PI * 28;
+  fg.style.strokeDasharray = CIRC;
+  let S = null, offset = 0, catKey = '';
+
+  function paint() {
+    if (!S) return;
+    const ss = S.session;
+    const t = ss.phase === 'running' && S.tasks.find((x) => x.id === ss.taskId);
+    if (t) {
+      let rem = t.remainingMs;
+      if (S.clockRunning) rem = Math.max(0, rem - (Date.now() + offset - ss.runningSince));
+      const total = t.plannedMin * 60000;
+      ring.hidden = false;
+      fg.style.strokeDashoffset = CIRC * (1 - Math.min(1, rem / total));
+      ball.classList.toggle('paused', !S.clockRunning);
+      const m = Math.ceil(rem / 60000);
+      num.innerHTML = `${m}<small>${S.clockRunning ? '分钟' : '已暂停'}</small>`;
+    } else {
+      ring.hidden = true;
+      ball.classList.remove('paused');
+      // 只数 to-do 中可执行的任务（含等待继续的任务）
+      num.innerHTML = `${S.queue.length}${ss.phase === 'review' ? '<small>待回顾</small>' : ''}`;
+    }
+    ball.classList.toggle('attn', ss.phase === 'review' || ss.phase === 'ready'); // 有回顾或下一项待开始时轻轻提醒
+    const key = `${S.settings.desktopCat}|${S.cat.status}`;
+    if (key !== catKey) {
+      catKey = key;
+      cat.classList.toggle('on', !!S.settings.desktopCat);
+      cat.innerHTML = S.cat.status === 'hunting' ? '<small>🐾 外出打猎</small>' : catSvg(S.cat.status, 64);
+    }
+  }
+  api.on('state', (snap) => { S = snap; offset = snap.now - Date.now(); paint(); });
+  api.snapshot();
+  setInterval(paint, 1000);
+
+  // 手动拖动（保留悬停事件），悬停片刻或点击展开
+  let down = null, dragging = false, hoverTimer = null;
+  ball.addEventListener('pointerdown', (e) => {
+    if (e.button !== 0) return;
+    down = { x: e.screenX, y: e.screenY };
+    ball.setPointerCapture(e.pointerId);
+    clearTimeout(hoverTimer);
+  });
+  ball.addEventListener('pointermove', (e) => {
+    if (!down) return;
+    const dx = e.screenX - down.x, dy = e.screenY - down.y;
+    if (!dragging && Math.hypot(dx, dy) > 4) { dragging = true; ball.classList.add('dragging'); api.ui('dragStart'); }
+    if (dragging) api.ui('drag', { dx, dy });
+  });
+  ball.addEventListener('pointerup', () => {
+    if (dragging) api.ui('dragEnd'); else if (down) api.ui('hover');
+    down = null; dragging = false; ball.classList.remove('dragging');
+  });
+  ball.addEventListener('pointerenter', () => {
+    if (down) return;
+    hoverTimer = setTimeout(() => { if (!down && !dragging) api.ui('hover'); }, 220);
+  });
+  ball.addEventListener('pointerleave', () => clearTimeout(hoverTimer));
+  ball.addEventListener('contextmenu', (e) => { e.preventDefault(); clearTimeout(hoverTimer); api.ui('ballMenu'); });
+</script>
+</body>
+</html>
