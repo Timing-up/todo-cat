@@ -7,9 +7,10 @@
   "private": true,
   "scripts": {
     "start": "electron .",
-    "test": "node --test test/",
-    "e2e": "TODOCAT_E2E=1 electron .",
-    "package": "electron-packager . \"Todo Cat\" --platform=darwin --arch=arm64 --out=dist --overwrite --app-bundle-id=com.todocat.app --icon=build/icon.icns --ignore=\"^/scripts\" --ignore=\"^/dist\" --ignore=\"^/test\" --ignore=\"^/e2e-shots\" && codesign --force --deep -s - \"dist/Todo Cat-darwin-arm64/Todo Cat.app\""
+    "test": "node --test test/engine.test.js test/store.test.js",
+    "e2e": "node scripts/e2e.js",
+    "package:mac": "electron-packager . \"Todo Cat\" --platform=darwin --arch=arm64,x64 --out=dist --overwrite --app-bundle-id=com.todocat.app --icon=build/icon.icns --ignore=\"^/dist\" --ignore=\"^/test\" --ignore=\"^/e2e-shots\" --ignore=\"^/scripts\" && node scripts/sign-mac.js",
+    "package:win": "electron-packager . \"Todo Cat\" --platform=win32 --arch=x64 --out=dist --overwrite --icon=build/icon.ico --ignore=\"^/dist\" --ignore=\"^/test\" --ignore=\"^/e2e-shots\" --ignore=\"^/scripts\""
   },
   "devDependencies": {
     "@electron/packager": "^20.3.0",

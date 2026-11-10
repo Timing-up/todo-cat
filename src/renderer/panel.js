@@ -170,7 +170,7 @@ function renderStrip() {
   $('#today-strip').innerHTML = `<span>${parts.join(' · ')}</span>${eta}`;
   $('#onboard').innerHTML = S.settings.onboarded ? '' : `<div class="onb"><b>三步上手</b>
     <ol><li>记下标题，末尾写上时长直接回车，例如「写周报 25分」。</li><li>点队首任务的「开始」，一次只计时做一件事。</li><li>分心时点「记想法」，到点后再集中回顾。</li></ol>
-    <div class="row-btns"><span class="hint">随时按 ⌥⇧T 唤出，⌥⇧I 记想法</span><button class="btn primary" data-act="onboarded">知道了</button></div></div>`;
+    <div class="row-btns"><span class="hint">随时按 ${S.env.keys.add} 唤出，${S.env.keys.thought} 记想法</span><button class="btn primary" data-act="onboarded">知道了</button></div></div>`;
 }
 
 function renderTodo() {
@@ -400,8 +400,8 @@ function settingsHTML() {
     <div class="set"><div class="tx"><b>把小猫显示到桌面</b><span>小猫坐在悬浮球上。</span></div>${sw('desktopCat')}</div>
     <div class="set"><div class="tx"><b>到点提示音</b><span>计时完成时响一声系统提示音；通知和面板提醒不受影响。</span></div>${sw('sound')}</div>
     <div class="set"><div class="tx"><b>全局快捷键</b>
-      <span><kbd>⌥⇧T</kbd> 唤出并记一件事${s.shortcuts && !S.env.shortcutsOk.add ? '（被其他应用占用，未生效）' : ''}　<kbd>⌥⇧I</kbd> 记想法${s.shortcuts && !S.env.shortcutsOk.thought ? '（被占用，未生效）' : ''}</span>
-      <span>面板内：<kbd>⌘1</kbd>–<kbd>⌘6</kbd> 切换标签　<kbd>N</kbd> 新待办　<kbd>Enter</kbd> 开始队首　<kbd>空格</kbd> 暂停/继续　<kbd>T</kbd> 记想法　<kbd>Esc</kbd> 收起</span></div>${sw('shortcuts')}</div>
+      <span><kbd>${S.env.keys.add}</kbd> 唤出并记一件事${s.shortcuts && !S.env.shortcutsOk.add ? '（被其他应用占用，未生效）' : ''}　<kbd>${S.env.keys.thought}</kbd> 记想法${s.shortcuts && !S.env.shortcutsOk.thought ? '（被占用，未生效）' : ''}</span>
+      <span>面板内：<kbd>${S.env.keys.mod}1</kbd>–<kbd>${S.env.keys.mod}6</kbd> 切换标签　<kbd>N</kbd> 新待办　<kbd>Enter</kbd> 开始队首　<kbd>空格</kbd> 暂停/继续　<kbd>T</kbd> 记想法　<kbd>Esc</kbd> 收起</span></div>${sw('shortcuts')}</div>
     <div class="set"><div class="tx"><b>自愿上报使用数据（封闭测试）</b>
       <span>默认关闭，核心功能全程可离线使用。打开后只上报事件元数据（例如“开始计时”“回顾完成”及时长、条数），用于了解录入、计时和回顾流程是否顺畅。</span>
       <span>使用本次安装的随机 ID 和可选的测试码；<b style="display:inline">任务标题、想法正文、设备指纹都不采集</b>。原始事件保留 90 天。随时可以关闭，关闭即停止采集并清空本机排队的数据；需要删除已上报的数据，请把测试码告诉测试负责人。</span>
@@ -646,7 +646,7 @@ document.addEventListener('dblclick', (e) => {
 // 面板内键盘操作
 document.addEventListener('keydown', (e) => {
   if (!S) return;
-  if (e.metaKey && /^[1-6]$/.test(e.key)) { e.preventDefault(); setTab(TABS[Number(e.key) - 1]); return; }
+  if ((e.metaKey || e.ctrlKey) && /^[1-6]$/.test(e.key)) { e.preventDefault(); setTab(TABS[Number(e.key) - 1]); return; }
   if (/INPUT|TEXTAREA/.test(e.target.tagName) || e.metaKey || e.ctrlKey || e.altKey) return;
   const ss = S.session;
   if (e.target.tagName === 'BUTTON' && (e.key === 'Enter' || e.key === ' ')) return; // 交给按钮自己处理

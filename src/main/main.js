@@ -9,6 +9,8 @@ const { stats } = require('../core/calendar');
 const { Store } = require('./store');
 
 const E2E = !!process.env.TODOCAT_E2E;
+const MAC = process.platform === 'darwin';
+const MOD_KEYS = MAC ? { add: '⌥⇧T', thought: '⌥⇧I', mod: '⌘' } : { add: 'Alt+Shift+T', thought: 'Alt+Shift+I', mod: 'Ctrl+' };
 if (process.env.TODOCAT_DATA_DIR) app.setPath('userData', process.env.TODOCAT_DATA_DIR);
 else if (E2E) app.setPath('userData', fs.mkdtempSync(path.join(os.tmpdir(), 'todocat-e2e-')));
 
@@ -51,7 +53,7 @@ function persist(light = false) {
 
 function broadcast() {
   const snap = engine.snapshot();
-  snap.env = { packaged: app.isPackaged, telemetryQueued: store.countEvents(), telemetryEndpoint: !!TELEMETRY_URL, shortcutsOk };
+  snap.env = { packaged: app.isPackaged, telemetryQueued: store.countEvents(), telemetryEndpoint: !!TELEMETRY_URL, shortcutsOk, keys: MOD_KEYS };
   snap.todayStats = stats(engine.s, 'day', now()).total;
   updateTray();
   for (const w of [ballWin, panelWin]) if (w && !w.isDestroyed()) w.webContents.send('state', snap);
@@ -109,7 +111,7 @@ function applyOnTop() {
   const on = !!engine.s.settings.alwaysOnTop;
   for (const w of [ballWin, panelWin]) {
     w.setAlwaysOnTop(on, 'floating');
-    w.setVisibleOnAllWorkspaces(on, { visibleOnFullScreen: true });
+    if (MAC) w.setVisibleOnAllWorkspaces(on, { visibleOnFullScreen: true });
   }
 }
 
@@ -123,17 +125,18 @@ function createWindows() {
   ballWin = new BrowserWindow({
     ...ballBounds(), frame: false, transparent: true, resizable: false, movable: true, hasShadow: false,
     skipTaskbar: true, fullscreenable: false, maximizable: false, minimizable: false, show: false,
-    type: 'panel', focusable: false, webPreferences,
+    ...(MAC ? { type: 'panel' } : {}), focusable: false, webPreferences,
   });
   ballWin.loadFile(path.join(__dirname, '../renderer/ball.html'));
 
   panelWin = new BrowserWindow({
     width: PANEL_W, height: PANEL_H, frame: false, resizable: false, show: false, skipTaskbar: true,
-    fullscreenable: false, maximizable: false, minimizable: false, type: 'panel',
-    vibrancy: 'popover', visualEffectState: 'active', backgroundColor: '#00000000', roundedCorners: true,
+    fullscreenable: false, maximizable: false, minimizable: false, roundedCorners: true,
+    // macOS 用系统毛玻璃；其他平台先用不透明底色
+    ...(MAC ? { type: 'panel', vibrancy: 'popover', visualEffectState: 'active', backgroundColor: '#00000000' } : { backgroundColor: '#23211e' }),
     webPreferences,
   });
-  panelWin.loadFile(path.join(__dirname, '../renderer/panel.html'), { query: E2E ? { solid: '1' } : {} });
+  panelWin.loadFile(path.join(__dirname, '../renderer/panel.html'), { query: E2E || !MAC ? { solid: '1' } : {} });
   panelWin.on('move', () => {
     if (!panelWin.isVisible()) return;
     const b = panelWin.getBounds();
@@ -244,7 +247,11 @@ function updateTray() {
     const mm = String(Math.floor(s / 60)).padStart(2, '0');
     t = `🐱 ${engine.clockRunning() ? '' : '❚❚ '}${mm}:${String(s % 60).padStart(2, '0')}`;
   } else if (ss.phase === 'review') t = '🐱 待回顾';
-  if (t !== lastTray) { lastTray = t; tray.setTitle(t, { fontType: 'monospacedDigit' }); }
+  if (t !== lastTray) {
+    lastTray = t;
+    if (MAC) tray.setTitle(t, { fontType: 'monospacedDigit' });
+    else tray.setToolTip(t.replace('🐱', 'Todo Cat').trim());
+  }
 }
 
 // ---------- IPC ----------
@@ -310,8 +317,10 @@ function registerIpc() {
 
 function buildTray() {
   try {
-    tray = new Tray(nativeImage.createEmpty());
-    tray.setTitle('🐱');
+    // macOS 菜单栏用文字标题显示倒计时；Windows 托盘需要图标，倒计时放在悬停提示里
+    tray = new Tray(MAC ? nativeImage.createEmpty() : nativeImage.createFromPath(path.join(__dirname, '../../build/icon.png')).resize({ width: 16, height: 16 }));
+    if (MAC) tray.setTitle('🐱');
+    else tray.on('click', () => expand({ userInitiated: true, hold: 4000 }));
     tray.setToolTip('Todo Cat');
     tray.setContextMenu(Menu.buildFromTemplate([
       { label: '打开 Todo Cat', click: () => expand({ userInitiated: true, hold: 4000 }) },
@@ -327,6 +336,7 @@ if (!app.requestSingleInstanceLock()) app.quit();
 else {
   app.on('second-instance', () => expand({ userInitiated: true, hold: 4000 }));
   app.whenReady().then(async () => {
+    if (!MAC) app.setAppUserModelId('com.todocat.app'); // Windows 通知需要
     const dir = app.getPath('userData');
     fs.mkdirSync(dir, { recursive: true });
     store = new Store(path.join(dir, 'todocat.db'));

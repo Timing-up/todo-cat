@@ -10,7 +10,7 @@
 }
 * { box-sizing: border-box; }
 html, body { height: 100%; margin: 0; }
-body { font: 13px/1.45 -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", sans-serif; color: var(--fg);
+body { font: 13px/1.45 -apple-system, BlinkMacSystemFont, "PingFang SC", "Segoe UI", "Microsoft YaHei UI", "Microsoft YaHei", "Helvetica Neue", sans-serif; color: var(--fg);
   background: var(--tint); display: flex; flex-direction: column; overflow: hidden; user-select: none; -webkit-user-select: none; cursor: default; }
 body.solid { background: var(--solid); }
 button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
@@ -244,3 +244,6 @@ button.tag:hover { background: var(--accent); color: var(--accent-fg); }
 @keyframes hop { 0% { transform: translateY(0); } 35% { transform: translateY(-16px) scale(1.04); } 70% { transform: translateY(0) scale(.98, 1.02); } 100% { transform: none; } }
 .pts { flex-wrap: wrap; }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-thumb { background: var(--line); border-radius: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
